@@ -4,6 +4,7 @@ import styled from 'styled-components'
 import {sample, invert} from 'lodash'
 import hiragana from './lib/hiragana'
 import {useHotkeys} from 'react-hotkeys-hook'
+import useSimpleAudio from 'use-simple-audio'
 
 const kanaByRomaji = invert(hiragana)
 
@@ -13,11 +14,11 @@ function App() {
   const [isWrong, setIsWrong] = useState(false)
   const [isRevealing, setIsRevealing] = useState(false)
   const [numberCorrect, setNumberCorrect] = useState(0)
+  const {play} = useSimpleAudio('blip.mp3')
 
   useHotkeys(
     'enter',
     () => {
-      console.log('test', isRevealing)
       if (isRevealing) {
         setIsRevealing(false)
       }
@@ -36,6 +37,7 @@ function App() {
       setInput('')
       setCurrent(getNewCharacter())
       setIsWrong(false)
+      play()
     } else {
       setInput('')
       const romaji = input.trim()
