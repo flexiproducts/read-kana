@@ -23,7 +23,8 @@ const katakana = Object.entries(katakanaMap).map(([kana, romaji]) => ({
 const words = wordData.map((data) => ({
   meaning: data['Vocab-meaning'],
   romaji: fromKana(data['Vocab-kana']),
-  kana: data['Vocab-kana']
+  kana: data['Vocab-kana'],
+  expression: data['Vocab-expression']
 }))
 
 function App() {
@@ -83,6 +84,11 @@ function App() {
       ) : (
         <>
           <Prompt>{current.kana}</Prompt>
+          <WordInfo>
+            {current.meaning
+              ? `${current.meaning} (${current.expression})`
+              : ' '}
+          </WordInfo>
           <TextInputContainer>
             {isRevealing ? (
               <Reveal>{current.romaji.toLowerCase()}</Reveal>
@@ -209,6 +215,12 @@ const Reveal = styled.div`
 
 const Info = styled.div`
   font-size: 3em;
+`
+
+const WordInfo = styled.div`
+  padding-bottom: 20px;
+  height: 20px;
+  font-style: italic;
 `
 
 ReactDOM.render(<App />, document.getElementById('app'))
