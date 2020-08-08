@@ -21,7 +21,7 @@ const katakana = Object.entries(katakanaMap).map(([kana, romaji]) => ({
 }))
 const words = wordData.map((data) => ({
   meaning: data['Vocab-meaning'],
-  romaji: fromKana(data['Vocab-kana']),
+  romaji: fromKana(data['Vocab-kana']).replace('ē', 'ee').replace('ō', 'oo'),
   kana: data['Vocab-kana'],
   expression: data['Vocab-expression']
 }))
