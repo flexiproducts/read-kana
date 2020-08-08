@@ -1,44 +1,11 @@
 import React, {useState, useEffect} from 'react'
 import ReactDOM from 'react-dom'
 import styled from 'styled-components'
-import {sample} from 'lodash'
-import {monographs} from './lib/hiragana'
+import {sample, invert} from 'lodash'
+import hiragana from './lib/hiragana'
 import {useHotkeys} from 'react-hotkeys-hook'
 
-const Center = styled.div`
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-direction: column;
-  height: 100%;
-  font-family: sans-serif;
-`
-
-const Prompt = styled.div`
-  font-size: 5em;
-`
-
-const TextInput = styled.input`
-  all: unset;
-  padding: 8px 12px;
-  border-radius: 6px;
-  border: 1px solid #ccc;
-  background-color: white;
-`
-
-const Validation = styled.div``
-
-const RevealButton = styled.button`
-  margin: 10px;
-`
-
-const TextInputContainer = styled.div`
-  height: 60px;
-`
-
-const Reveal = styled.div`
-  font-size: 1.2em;
-`
+const kanaByRomaji = invert(hiragana)
 
 function App() {
   const [current, setCurrent] = useState(getNewCharacter())
@@ -71,7 +38,8 @@ function App() {
       setIsWrong(false)
     } else {
       setInput('')
-      setIsWrong(input.trim())
+      const romaji = input.trim()
+      setIsWrong(`${romaji} (${kanaByRomaji[romaji.toUpperCase()] || ''})`)
     }
   }
 
@@ -84,7 +52,7 @@ function App() {
       <Prompt>{current[0]}</Prompt>
       <TextInputContainer>
         {isRevealing ? (
-          <Reveal>{current[1]}</Reveal>
+          <Reveal>{current[1].toLowerCase()}</Reveal>
         ) : (
           <TextInput
             autoFocus
@@ -95,10 +63,12 @@ function App() {
         )}
       </TextInputContainer>
       <Validation>
-        {isWrong ? `${isWrong} ❌` : ' '}
-        <RevealButton onClick={toggleReveal}>
-          {isRevealing ? 'solve' : 'reveal'}
-        </RevealButton>
+        <div>{isWrong ? ` ❌ ${isWrong}` : ' '}</div>
+        <div>
+          <RevealButton onClick={toggleReveal}>
+            {isRevealing ? 'solve' : 'reveal'}
+          </RevealButton>
+        </div>
       </Validation>
       <div>✅ {numberCorrect}</div>
     </Center>
@@ -106,7 +76,47 @@ function App() {
 }
 
 function getNewCharacter() {
-  return sample(Object.entries(monographs))
+  return sample(Object.entries(hiragana))
 }
+
+const Center = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  height: 100%;
+  font-family: sans-serif;
+`
+
+const Prompt = styled.div`
+  font-size: 5em;
+`
+
+const TextInput = styled.input`
+  all: unset;
+  padding: 8px 12px;
+  border-radius: 6px;
+  border: 1px solid #ccc;
+  background-color: white;
+`
+
+const Validation = styled.div`
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  font-size: 2em;
+`
+
+const RevealButton = styled.button`
+  margin: 10px;
+`
+
+const TextInputContainer = styled.div`
+  height: 60px;
+`
+
+const Reveal = styled.div`
+  font-size: 2em;
+`
 
 ReactDOM.render(<App />, document.getElementById('app'))
