@@ -51,7 +51,6 @@ function App() {
   )
 
   useEffect(() => {
-    console.log('effect')
     setCurrent(getPrompt())
   }, [settings.hiragana, settings.katakana, settings.words])
 
