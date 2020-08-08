@@ -118,11 +118,11 @@ function App() {
         <div>{isWrong ? ` ❌ ${isWrong}` : ' '}</div>
         <div>
           <RevealButton onClick={toggleReveal}>
-            {isRevealing ? 'solve' : 'reveal'}
+            {isRevealing ? 'solve' : 'see answer'}
           </RevealButton>
         </div>
       </Validation>
-      <div>✅ {numberCorrect}</div>
+      <Stats>🔥 {numberCorrect}</Stats>
       <Settings {...{settings, setSettings}} />
     </Center>
   )
@@ -169,7 +169,30 @@ const Validation = styled.div`
 `
 
 const RevealButton = styled.button`
+  text-decoration: none;
+  color: white;
+  padding: 4px 12px;
+  display: inline-block;
+  position: relative;
+  border: 1px solid rgba(0, 0, 0, 0.21);
+  border-bottom: 4px solid rgba(0, 0, 0, 0.21);
+  cursor: pointer;
+  border-radius: 4px;
   margin: 10px;
+  background: linear-gradient(
+    to bottom,
+    rgba(203, 153, 197, 1) 0%,
+    rgba(181, 134, 176, 1) 100%
+  );
+  text-shadow: 0 1px 0 rgba(0, 0, 0, 0.15);
+
+  :active {
+    background: #bd8eb7;
+  }
+
+  :focus {
+    outline: 0;
+  }
 `
 
 const TextInputContainer = styled.div`
@@ -188,6 +211,12 @@ const WordInfo = styled.div`
   padding-bottom: 20px;
   height: 20px;
   font-style: italic;
+`
+
+const Stats = styled.div`
+  position: fixed;
+  bottom: 5px;
+  right: 20px;
 `
 
 ReactDOM.render(<App />, document.getElementById('app'))
