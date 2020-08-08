@@ -11,6 +11,7 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "@overmise/use-local-storage": "^1.0.4",
     "hepburn": "^1.2.0",
     "lodash": "^4.17.19",
     "react": "^16.13.1",

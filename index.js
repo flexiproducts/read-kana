@@ -1,16 +1,15 @@
 import React, {useState, useEffect} from 'react'
 import ReactDOM from 'react-dom'
 import styled from 'styled-components'
-import {sample, invert, keyBy} from 'lodash'
+import {sample, some} from 'lodash'
 import hiraganaMap from './lib/hiragana'
 import katakanaMap from './lib/katakana'
 import {useHotkeys} from 'react-hotkeys-hook'
 import useSimpleAudio from 'use-simple-audio'
 import wordData from './words.json'
 import {fromKana, toHiragana, toKatakana, containsHiragana} from 'hepburn'
-
-const hiraganaByRomaji = invert(hiragana)
-const katakanaByRomaji = invert(katakana)
+import {useLocalStorage} from '@overmise/use-local-storage'
+import Settings from './Settings'
 
 const hiragana = Object.entries(hiraganaMap).map(([kana, romaji]) => ({
   kana,
@@ -28,9 +27,11 @@ const words = wordData.map((data) => ({
 }))
 
 function App() {
-  const [hiraganaEnabled, setHiraganaEnabled] = useState(true)
-  const [katakanaEnabled, setKatakanaEnabled] = useState(true)
-  const [wordsEnabled, setWordsEnabled] = useState(true)
+  const [settings, setSettings] = useLocalStorage('settings', {
+    hiragana: true,
+    katakana: true,
+    words: true
+  })
 
   const [current, setCurrent] = useState(getPrompt())
   const [input, setInput] = useState('')
@@ -48,6 +49,20 @@ function App() {
     },
     [isRevealing]
   )
+
+  useEffect(() => {
+    console.log('effect')
+    setCurrent(getPrompt())
+  }, [settings.hiragana, settings.katakana, settings.words])
+
+  if (!some(settings) || !current) {
+    return (
+      <Center>
+        <Info>pls select something 😔</Info>
+        <Settings {...{settings, setSettings}} />
+      </Center>
+    )
+  }
 
   if (input.trim() === '?') {
     setInput('')
@@ -79,99 +94,47 @@ function App() {
 
   return (
     <Center>
-      {!hiraganaEnabled && !katakanaEnabled && !wordsEnabled ? (
-        <Info>pls select something 😔</Info>
-      ) : (
-        <>
-          <Prompt>{current.kana}</Prompt>
-          <WordInfo>
-            {current.meaning
-              ? `${current.meaning} (${current.expression})`
-              : ' '}
-          </WordInfo>
-          <TextInputContainer>
-            {isRevealing ? (
-              <Reveal>{current.romaji.toLowerCase()}</Reveal>
-            ) : (
-              <TextInput
-                autoFocus
-                type="text"
-                value={input}
-                onChange={(e) => setInput(e.target.value)}
-              />
-            )}
-          </TextInputContainer>
-          <Validation>
-            <div>{isWrong ? ` ❌ ${isWrong}` : ' '}</div>
-            <div>
-              <RevealButton onClick={toggleReveal}>
-                {isRevealing ? 'solve' : 'reveal'}
-              </RevealButton>
-            </div>
-          </Validation>
-          <div>✅ {numberCorrect}</div>
-        </>
-      )}
-      <Settings>
+      <Prompt>{current.kana}</Prompt>
+      <WordInfo>
+        {current.meaning ? `${current.meaning} (${current.expression})` : ' '}
+      </WordInfo>
+      <TextInputContainer>
+        {isRevealing ? (
+          <Reveal>{current.romaji.toLowerCase()}</Reveal>
+        ) : (
+          <TextInput
+            autoFocus
+            type="text"
+            value={input}
+            onChange={(e) => setInput(e.target.value)}
+          />
+        )}
+      </TextInputContainer>
+      <Validation>
+        <div>{isWrong ? ` ❌ ${isWrong}` : ' '}</div>
         <div>
-          <label>
-            <input
-              type="checkbox"
-              checked={hiraganaEnabled}
-              onChange={() => setHiraganaEnabled((before) => !before)}
-            />
-            hiragana
-          </label>
+          <RevealButton onClick={toggleReveal}>
+            {isRevealing ? 'solve' : 'reveal'}
+          </RevealButton>
         </div>
-        <div>
-          <label>
-            <input
-              type="checkbox"
-              checked={katakanaEnabled}
-              onChange={() => setKatakanaEnabled((before) => !before)}
-            />
-            katakana
-          </label>
-        </div>
-        <div>
-          <label>
-            <input
-              type="checkbox"
-              checked={wordsEnabled}
-              onChange={() => setWordsEnabled((before) => !before)}
-            />
-            words
-          </label>
-        </div>
-      </Settings>
+      </Validation>
+      <div>✅ {numberCorrect}</div>
+      <Settings {...{settings, setSettings}} />
     </Center>
   )
 
   function getPrompt() {
     const category = sample(
       [
-        hiraganaEnabled && hiragana,
-        katakanaEnabled && katakana,
-        wordsEnabled && words
+        settings.hiragana && hiragana,
+        settings.katakana && katakana,
+        settings.words && words
       ].filter((list) => list)
     )
 
     return sample(category)
   }
 }
-
-const Settings = styled.div`
-  position: fixed;
-  padding: 5px;
-  bottom: 0;
-  left: 0;
-
-  label,
-  input {
-    display: inline-block;
-    vertical-align: middle;
-  }
-`
 
 const Center = styled.div`
   display: flex;
