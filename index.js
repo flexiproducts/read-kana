@@ -1,19 +1,37 @@
 import React, {useState, useEffect} from 'react'
 import ReactDOM from 'react-dom'
 import styled from 'styled-components'
-import {sample, invert} from 'lodash'
-import hiragana from './lib/hiragana'
-import katakana from './lib/katakana'
+import {sample, invert, keyBy} from 'lodash'
+import hiraganaMap from './lib/hiragana'
+import katakanaMap from './lib/katakana'
 import {useHotkeys} from 'react-hotkeys-hook'
 import useSimpleAudio from 'use-simple-audio'
+import wordData from './words.json'
+import {fromKana, toHiragana, toKatakana, containsHiragana} from 'hepburn'
 
 const hiraganaByRomaji = invert(hiragana)
 const katakanaByRomaji = invert(katakana)
 
+const hiragana = Object.entries(hiraganaMap).map(([kana, romaji]) => ({
+  kana,
+  romaji
+}))
+const katakana = Object.entries(katakanaMap).map(([kana, romaji]) => ({
+  kana,
+  romaji
+}))
+const words = wordData.map((data) => ({
+  meaning: data['Vocab-meaning'],
+  romaji: fromKana(data['Vocab-kana']),
+  kana: data['Vocab-kana']
+}))
+
 function App() {
   const [hiraganaEnabled, setHiraganaEnabled] = useState(true)
   const [katakanaEnabled, setKatakanaEnabled] = useState(true)
-  const [current, setCurrent] = useState(getNewCharacter())
+  const [wordsEnabled, setWordsEnabled] = useState(true)
+
+  const [current, setCurrent] = useState(getPrompt())
   const [input, setInput] = useState('')
   const [isWrong, setIsWrong] = useState(false)
   const [isRevealing, setIsRevealing] = useState(false)
@@ -35,19 +53,21 @@ function App() {
     setIsRevealing(true)
   }
 
-  if (input.trim().length === current[1].length) {
-    if (input.toLowerCase().trim() === current[1].toLowerCase()) {
+  if (input.trim().length === current.romaji.length) {
+    if (input.toLowerCase().trim() === current.romaji.toLowerCase()) {
       setNumberCorrect((number) => number + 1)
       setInput('')
-      setCurrent(getNewCharacter())
+      setCurrent(getPrompt())
       setIsWrong(false)
       play()
     } else {
       setInput('')
       const romaji = input.trim().toUpperCase()
-      const usedKana = hiragana[current]
-        ? hiraganaByRomaji[romaji]
-        : katakanaByRomaji[romaji]
+
+      const usedKana = containsHiragana(current.kana)
+        ? toHiragana(romaji)
+        : toKatakana(romaji)
+
       setIsWrong(`${romaji.toLowerCase()} (${usedKana || ''})`)
     }
   }
@@ -58,14 +78,14 @@ function App() {
 
   return (
     <Center>
-      {!hiraganaEnabled && !katakanaEnabled ? (
+      {!hiraganaEnabled && !katakanaEnabled && !wordsEnabled ? (
         <Info>pls select something 😔</Info>
       ) : (
         <>
-          <Prompt>{current[0]}</Prompt>
+          <Prompt>{current.kana}</Prompt>
           <TextInputContainer>
             {isRevealing ? (
-              <Reveal>{current[1].toLowerCase()}</Reveal>
+              <Reveal>{current.romaji.toLowerCase()}</Reveal>
             ) : (
               <TextInput
                 autoFocus
@@ -94,7 +114,7 @@ function App() {
               checked={hiraganaEnabled}
               onChange={() => setHiraganaEnabled((before) => !before)}
             />
-            ひらがな
+            hiragana
           </label>
         </div>
         <div>
@@ -104,20 +124,33 @@ function App() {
               checked={katakanaEnabled}
               onChange={() => setKatakanaEnabled((before) => !before)}
             />
-            カタカナ
+            katakana
+          </label>
+        </div>
+        <div>
+          <label>
+            <input
+              type="checkbox"
+              checked={wordsEnabled}
+              onChange={() => setWordsEnabled((before) => !before)}
+            />
+            words
           </label>
         </div>
       </Settings>
     </Center>
   )
 
-  function getNewCharacter() {
-    return sample(
-      Object.entries({
-        ...(hiraganaEnabled ? hiragana : {}),
-        ...(katakanaEnabled ? katakana : {})
-      })
+  function getPrompt() {
+    const category = sample(
+      [
+        hiraganaEnabled && hiragana,
+        katakanaEnabled && katakana,
+        wordsEnabled && words
+      ].filter((list) => list)
     )
+
+    return sample(category)
   }
 }
 
