@@ -41,7 +41,7 @@ function App() {
   const [input, setInput] = useState('')
   const [isWrong, setIsWrong] = useState(false)
   const [isRevealing, setIsRevealing] = useState(false)
-  const [numberCorrect, setNumberCorrect] = useState(0)
+  const [numberCorrect, setNumberCorrect] = useLocalStorage('correct-number', 0)
   const {play} = useSimpleAudio('blip.mp3')
 
   useHotkeys(
