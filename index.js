@@ -3,12 +3,16 @@ import ReactDOM from 'react-dom'
 import styled from 'styled-components'
 import {sample, invert} from 'lodash'
 import hiragana from './lib/hiragana'
+import katakana from './lib/katakana'
 import {useHotkeys} from 'react-hotkeys-hook'
 import useSimpleAudio from 'use-simple-audio'
 
-const kanaByRomaji = invert(hiragana)
+const hiraganaByRomaji = invert(hiragana)
+const katakanaByRomaji = invert(katakana)
 
 function App() {
+  const [hiraganaEnabled, setHiraganaEnabled] = useState(true)
+  const [katakanaEnabled, setKatakanaEnabled] = useState(true)
   const [current, setCurrent] = useState(getNewCharacter())
   const [input, setInput] = useState('')
   const [isWrong, setIsWrong] = useState(false)
@@ -40,8 +44,11 @@ function App() {
       play()
     } else {
       setInput('')
-      const romaji = input.trim()
-      setIsWrong(`${romaji} (${kanaByRomaji[romaji.toUpperCase()] || ''})`)
+      const romaji = input.trim().toUpperCase()
+      const usedKana = hiragana[current]
+        ? hiraganaByRomaji[romaji]
+        : katakanaByRomaji[romaji]
+      setIsWrong(`${romaji.toLowerCase()} (${usedKana || ''})`)
     }
   }
 
@@ -51,35 +58,81 @@ function App() {
 
   return (
     <Center>
-      <Prompt>{current[0]}</Prompt>
-      <TextInputContainer>
-        {isRevealing ? (
-          <Reveal>{current[1].toLowerCase()}</Reveal>
-        ) : (
-          <TextInput
-            autoFocus
-            type="text"
-            value={input}
-            onChange={(e) => setInput(e.target.value)}
-          />
-        )}
-      </TextInputContainer>
-      <Validation>
-        <div>{isWrong ? ` ❌ ${isWrong}` : ' '}</div>
+      {!hiraganaEnabled && !katakanaEnabled ? (
+        <Info>pls select something 😔</Info>
+      ) : (
+        <>
+          <Prompt>{current[0]}</Prompt>
+          <TextInputContainer>
+            {isRevealing ? (
+              <Reveal>{current[1].toLowerCase()}</Reveal>
+            ) : (
+              <TextInput
+                autoFocus
+                type="text"
+                value={input}
+                onChange={(e) => setInput(e.target.value)}
+              />
+            )}
+          </TextInputContainer>
+          <Validation>
+            <div>{isWrong ? ` ❌ ${isWrong}` : ' '}</div>
+            <div>
+              <RevealButton onClick={toggleReveal}>
+                {isRevealing ? 'solve' : 'reveal'}
+              </RevealButton>
+            </div>
+          </Validation>
+          <div>✅ {numberCorrect}</div>
+        </>
+      )}
+      <Settings>
         <div>
-          <RevealButton onClick={toggleReveal}>
-            {isRevealing ? 'solve' : 'reveal'}
-          </RevealButton>
+          <label>
+            <input
+              type="checkbox"
+              checked={hiraganaEnabled}
+              onChange={() => setHiraganaEnabled((before) => !before)}
+            />
+            ひらがな
+          </label>
         </div>
-      </Validation>
-      <div>✅ {numberCorrect}</div>
+        <div>
+          <label>
+            <input
+              type="checkbox"
+              checked={katakanaEnabled}
+              onChange={() => setKatakanaEnabled((before) => !before)}
+            />
+            カタカナ
+          </label>
+        </div>
+      </Settings>
     </Center>
   )
+
+  function getNewCharacter() {
+    return sample(
+      Object.entries({
+        ...(hiraganaEnabled ? hiragana : {}),
+        ...(katakanaEnabled ? katakana : {})
+      })
+    )
+  }
 }
 
-function getNewCharacter() {
-  return sample(Object.entries(hiragana))
-}
+const Settings = styled.div`
+  position: fixed;
+  padding: 5px;
+  bottom: 0;
+  left: 0;
+
+  label,
+  input {
+    display: inline-block;
+    vertical-align: middle;
+  }
+`
 
 const Center = styled.div`
   display: flex;
@@ -119,6 +172,10 @@ const TextInputContainer = styled.div`
 
 const Reveal = styled.div`
   font-size: 2em;
+`
+
+const Info = styled.div`
+  font-size: 3em;
 `
 
 ReactDOM.render(<App />, document.getElementById('app'))
