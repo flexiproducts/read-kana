@@ -10,6 +10,10 @@ import wordData from './words.json'
 import {fromKana, toHiragana, toKatakana, containsHiragana} from 'hepburn'
 import {useLocalStorage} from '@overmise/use-local-storage'
 import Settings from './Settings'
+import Speech from 'speak-tts'
+
+const speech = new Speech()
+speech.init({lang: 'ja'}).catch(console.error)
 
 const hiragana = Object.entries(hiraganaMap).map(([kana, romaji]) => ({
   kana,
@@ -70,6 +74,7 @@ function App() {
 
   if (input.trim().length === current.romaji.length) {
     if (input.toLowerCase().trim() === current.romaji.toLowerCase()) {
+      speech.speak({text: current.kana})
       setNumberCorrect((number) => number + 1)
       setInput('')
       setCurrent(getPrompt())
