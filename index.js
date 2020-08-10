@@ -109,6 +109,7 @@ function App() {
           <TextInput
             autoFocus
             type="text"
+            placeholder="Type in Romaji"
             value={input}
             onChange={(e) => setInput(e.target.value)}
           />
