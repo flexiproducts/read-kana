@@ -6,7 +6,7 @@ export default function Settings({settings, setSettings}) {
     <Container>
       <Heading>settings</Heading>
       <div>
-        <label>
+        <Label>
           <input
             type="checkbox"
             checked={settings.hiragana}
@@ -15,10 +15,10 @@ export default function Settings({settings, setSettings}) {
             }
           />
           hiragana
-        </label>
+        </Label>
       </div>
       <div>
-        <label>
+        <Label>
           <input
             type="checkbox"
             checked={settings.katakana}
@@ -27,10 +27,10 @@ export default function Settings({settings, setSettings}) {
             }
           />
           katakana
-        </label>
+        </Label>
       </div>
       <div>
-        <label>
+        <Label>
           <input
             type="checkbox"
             checked={settings.words}
@@ -42,11 +42,15 @@ export default function Settings({settings, setSettings}) {
             }
           />
           words
-        </label>
+        </Label>
       </div>
     </Container>
   )
 }
+
+const Label = styled.label`
+  cursor: pointer;
+`
 
 const Container = styled.div`
   position: fixed;

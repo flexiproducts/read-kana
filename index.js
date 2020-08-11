@@ -34,7 +34,7 @@ function App() {
   const [settings, setSettings] = useLocalStorage('settings', {
     hiragana: true,
     katakana: true,
-    words: true
+    words: false
   })
 
   const [current, setCurrent] = useState(getPrompt())
