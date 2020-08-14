@@ -9,8 +9,8 @@ import useSimpleAudio from 'use-simple-audio'
 import wordData from './words.json'
 import {fromKana, toHiragana, toKatakana, containsHiragana} from 'hepburn'
 import {useLocalStorage} from '@overmise/use-local-storage'
-import Settings from './Settings'
 import Speech from 'speak-tts'
+import Layout from './lib/src/Layout'
 
 const speech = new Speech()
 speech.init({lang: 'ja'}).catch(console.error)
@@ -60,10 +60,9 @@ function App() {
 
   if (!some(settings) || !current) {
     return (
-      <Center>
+      <Layout {...{settings, setSettings, numberCorrect}}>
         <Info>pls select something 😔</Info>
-        <Settings {...{settings, setSettings}} />
-      </Center>
+      </Layout>
     )
   }
 
@@ -97,7 +96,7 @@ function App() {
   }
 
   return (
-    <Center>
+    <Layout {...{settings, setSettings, numberCorrect}}>
       <Prompt>{current.kana}</Prompt>
       <WordInfo>
         {current.meaning ? `${current.meaning} (${current.expression})` : ' '}
@@ -123,9 +122,7 @@ function App() {
           </RevealButton>
         </div>
       </Validation>
-      <Stats>🔥 {numberCorrect}</Stats>
-      <Settings {...{settings, setSettings}} />
-    </Center>
+    </Layout>
   )
 
   function getPrompt() {
@@ -140,15 +137,6 @@ function App() {
     return sample(category)
   }
 }
-
-const Center = styled.div`
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-direction: column;
-  height: 100%;
-  font-family: sans-serif;
-`
 
 const Prompt = styled.div`
   font-size: 5em;
@@ -212,12 +200,6 @@ const WordInfo = styled.div`
   padding-bottom: 20px;
   height: 20px;
   font-style: italic;
-`
-
-const Stats = styled.div`
-  position: fixed;
-  bottom: 5px;
-  right: 20px;
 `
 
 ReactDOM.render(<App />, document.getElementById('app'))
