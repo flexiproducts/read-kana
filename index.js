@@ -2,15 +2,15 @@ import React, {useState, useEffect} from 'react'
 import ReactDOM from 'react-dom'
 import styled from 'styled-components'
 import {sample, some} from 'lodash'
-import hiraganaMap from './lib/hiragana'
-import katakanaMap from './lib/katakana'
+import hiraganaMap from './src/lib/hiragana'
+import katakanaMap from './src/lib/katakana'
 import {useHotkeys} from 'react-hotkeys-hook'
 import useSimpleAudio from 'use-simple-audio'
 import wordData from './words.json'
 import {fromKana, toHiragana, toKatakana, containsHiragana} from 'hepburn'
 import {useLocalStorage} from '@overmise/use-local-storage'
 import Speech from 'speak-tts'
-import Layout from './lib/src/Layout'
+import Layout from './src/Layout'
 
 const speech = new Speech()
 speech.init({lang: 'ja'}).catch(console.error)
@@ -148,6 +148,8 @@ const TextInput = styled.input`
   border-radius: 6px;
   border: 1px solid #ccc;
   background-color: white;
+  width: 100%;
+  box-sizing: border-box;
 `
 
 const Validation = styled.div`
@@ -182,14 +184,24 @@ const RevealButton = styled.button`
   :focus {
     outline: 0;
   }
+
+  @media (max-width: 812px) {
+    padding: 8px 24px;
+    font-size: 0.8em;
+  }
 `
 
 const TextInputContainer = styled.div`
   height: 60px;
+  @media (max-width: 812px) {
+    width: 100%;
+    font-size: 1.2em;
+  }
 `
 
 const Reveal = styled.div`
   font-size: 2em;
+  text-align: center;
 `
 
 const Info = styled.div`
