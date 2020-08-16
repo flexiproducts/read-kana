@@ -1,4 +1,4 @@
-import React, {useState, useEffect} from 'react'
+import React, {useState, useEffect, useReducer} from 'react'
 import ReactDOM from 'react-dom'
 import styled from 'styled-components'
 import {sample, some} from 'lodash'
@@ -23,6 +23,7 @@ const katakana = Object.entries(katakanaMap).map(([kana, romaji]) => ({
   kana,
   romaji
 }))
+
 const words = wordData.map((data) => ({
   meaning: data['Vocab-meaning'],
   romaji: fromKana(data['Vocab-kana'])
@@ -33,32 +34,79 @@ const words = wordData.map((data) => ({
   expression: data['Vocab-expression']
 }))
 
+const initialState = {
+  current: getPrompt(),
+  input: '',
+  isWrong: false,
+  isRevealing: false,
+  settings: {}
+}
+
+function reducer(state, action) {
+  const {input, current, settings, isRevealing} = statee
+  if (action.type === 'newPrompt') {
+    return {
+      ...state,
+      settings: action.settings || settings
+    }
+  }
+
+  if (action.type === 'toggleReveal') {
+    return {
+      ...state,
+      input: '',
+      isRevealing: !isRevealing
+    }
+  }
+
+  if (action.type === 'input') {
+    return {
+      ...state,
+      input: action.value
+    }
+  }
+
+  if (action.type === 'check') {
+    if (isCorrect()) {
+      return {
+        correct:
+      }
+    } else {
+      onFailure()
+    }
+  }
+
+  function isCorrect() {
+    return input.toLowerCase().trim() === current.romaji.toLowerCase()
+  }
+
+  function onCorrect() {
+    speech.speak({text: current.kana})
+    setNumberCorrect((number) => number + 1)
+    setCurrent(getPrompt())
+    setIsWrong(false)
+    play()
+    setInput('')
+  }
+}
+
 function App() {
+  const [state, dispatch] = useReducer(reducer, initialState)
   const [settings, setSettings] = useLocalStorage('settings', {
     hiragana: true,
     katakana: true,
     words: false
   })
 
-  const [current, setCurrent] = useState(getPrompt())
-  const [input, setInput] = useState('')
-  const [isWrong, setIsWrong] = useState(false)
-  const [isRevealing, setIsRevealing] = useState(false)
+  const {current, input, isWrong, isRevealing} = state
+
   const [numberCorrect, setNumberCorrect] = useLocalStorage('correct-number', 0)
   const {play} = useSimpleAudio('blip.mp3')
 
-  useHotkeys(
-    'enter',
-    () => {
-      if (isRevealing) {
-        setIsRevealing(false)
-      }
-    },
-    [isRevealing]
-  )
+  useHotkeys('enter', onPressEnter, [isRevealing, input, current])
 
   useEffect(() => {
-    setCurrent(getPrompt())
+    dispatch({type: 'newPrompt', settings})
   }, [settings.hiragana, settings.katakana, settings.words])
 
   if (!some(settings) || !current) {
@@ -70,32 +118,11 @@ function App() {
   }
 
   if (input.trim() === '?') {
-    setInput('')
-    setIsRevealing(true)
+    dispatch({type: 'toggleReval'})
   }
 
   if (input.trim().length === current.romaji.length) {
-    if (input.toLowerCase().trim() === current.romaji.toLowerCase()) {
-      speech.speak({text: current.kana})
-      setNumberCorrect((number) => number + 1)
-      setInput('')
-      setCurrent(getPrompt())
-      setIsWrong(false)
-      play()
-    } else {
-      setInput('')
-      const romaji = input.trim().toUpperCase()
-
-      const usedKana = containsHiragana(current.kana)
-        ? toHiragana(romaji)
-        : toKatakana(romaji)
-
-      setIsWrong(`${romaji.toLowerCase()} (${usedKana || ''})`)
-    }
-  }
-
-  function toggleReveal() {
-    setIsRevealing(!isRevealing)
+    if (isCorrect()) onCorrect()
   }
 
   return (
@@ -113,7 +140,7 @@ function App() {
             type="text"
             placeholder="Type in Romaji"
             value={input}
-            onChange={(e) => setInput(e.target.value)}
+            onChange={(e) => dispatch({type: 'input', value: e.target.value})}
           />
         )}
       </TextInputContainer>
@@ -128,6 +155,20 @@ function App() {
     </Layout>
   )
 
+  function onFailure() {
+    const romaji = input.trim().toUpperCase()
+    const usedKana = containsHiragana(current.kana)
+      ? toHiragana(romaji)
+      : toKatakana(romaji)
+
+    setIsWrong(`${romaji.toLowerCase()} (${usedKana || ''})`)
+    setInput('')
+  }
+
+  function toggleReveal() {
+    dispatch('toggleReveal')
+  }
+
   function getPrompt() {
     const category = sample(
       [
@@ -138,6 +179,14 @@ function App() {
     )
 
     return sample(category)
+  }
+
+  function onPressEnter() {
+    if (isRevealing) {
+      dispatch({type: 'toggleReveal'})
+    } else {
+      dispatch({type: 'check'})
+    }
   }
 }
 
