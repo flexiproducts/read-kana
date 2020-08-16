@@ -59,7 +59,12 @@ function App() {
   )
   const {current, input, isWrong, isRevealing, settings} = state
 
-  useHotkeys('enter', onPressEnter, [isRevealing, input, current])
+  useHotkeys(
+    'enter',
+    () => dispatch({type: 'onPressEnter'}),
+    {filter: () => true},
+    [dispatch]
+  )
 
   if (!some(settings)) {
     return (
@@ -112,19 +117,13 @@ function App() {
   function toggleReveal() {
     dispatch({type: 'toggleReveal'})
   }
-
-  function onPressEnter() {
-    if (isRevealing) {
-      dispatch({type: 'toggleReveal'})
-    } else {
-      dispatch({type: 'check'})
-    }
-  }
 }
 
 function reducer(state, action) {
-  console.log(action.type)
   const {input, current, settings, isRevealing, correct} = state
+
+  console.log(action.type)
+
   if (action.type === 'newPrompt') {
     return {
       ...state,
@@ -132,7 +131,10 @@ function reducer(state, action) {
     }
   }
 
-  if (action.type === 'toggleReveal') {
+  if (
+    action.type === 'toggleReveal' ||
+    (action.type === 'onPressEnter' && isRevealing)
+  ) {
     return {
       ...state,
       input: '',
@@ -150,7 +152,12 @@ function reducer(state, action) {
     }
   }
 
-  if (action.type === 'check') {
+  if (action.type === 'onPressEnter' && !isRevealing) {
+    if (input.length === 0)
+      return {
+        ...state,
+        isWrong: false
+      }
     if (isCorrect(input, current)) return onCorrect()
     return onFailure()
   }
