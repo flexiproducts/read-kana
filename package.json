@@ -11,15 +11,15 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "@overmise/use-local-storage": "^1.0.4",
     "hepburn": "^1.2.0",
+    "howler": "^2.2.0",
     "lodash": "^4.17.19",
     "react": "^16.13.1",
     "react-dom": "^16.13.1",
     "react-hotkeys-hook": "^2.2.1",
     "speak-tts": "^2.0.8",
     "styled-components": "^5.1.1",
-    "use-simple-audio": "^1.0.8"
+    "use-persist": "^1.0.5"
   },
   "devDependencies": {
     "@babel/core": "^7.10.5",

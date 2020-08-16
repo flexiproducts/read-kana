@@ -1,16 +1,20 @@
-import React, {useState, useEffect, useReducer} from 'react'
+import React from 'react'
+import {usePersistReducer} from 'use-persist'
 import ReactDOM from 'react-dom'
 import styled from 'styled-components'
 import {sample, some} from 'lodash'
 import hiraganaMap from './src/lib/hiragana'
 import katakanaMap from './src/lib/katakana'
 import {useHotkeys} from 'react-hotkeys-hook'
-import useSimpleAudio from 'use-simple-audio'
 import wordData from './words.json'
 import {fromKana, toHiragana, toKatakana, containsHiragana} from 'hepburn'
-import {useLocalStorage} from '@overmise/use-local-storage'
 import Speech from 'speak-tts'
 import Layout from './src/Layout'
+import {Howl} from 'howler'
+
+const correctSound = new Howl({
+  src: ['blip.mp3']
+})
 
 const speech = new Speech()
 speech.init({lang: 'ja'}).catch(console.error)
@@ -35,98 +39,44 @@ const words = wordData.map((data) => ({
 }))
 
 const initialState = {
-  current: getPrompt(),
   input: '',
   isWrong: false,
   isRevealing: false,
-  settings: {}
-}
-
-function reducer(state, action) {
-  const {input, current, settings, isRevealing} = statee
-  if (action.type === 'newPrompt') {
-    return {
-      ...state,
-      settings: action.settings || settings
-    }
-  }
-
-  if (action.type === 'toggleReveal') {
-    return {
-      ...state,
-      input: '',
-      isRevealing: !isRevealing
-    }
-  }
-
-  if (action.type === 'input') {
-    return {
-      ...state,
-      input: action.value
-    }
-  }
-
-  if (action.type === 'check') {
-    if (isCorrect()) {
-      return {
-        correct:
-      }
-    } else {
-      onFailure()
-    }
-  }
-
-  function isCorrect() {
-    return input.toLowerCase().trim() === current.romaji.toLowerCase()
-  }
-
-  function onCorrect() {
-    speech.speak({text: current.kana})
-    setNumberCorrect((number) => number + 1)
-    setCurrent(getPrompt())
-    setIsWrong(false)
-    play()
-    setInput('')
+  correct: 0,
+  settings: {
+    hiragana: true,
+    katakana: true,
+    words: false
   }
 }
 
 function App() {
-  const [state, dispatch] = useReducer(reducer, initialState)
-  const [settings, setSettings] = useLocalStorage('settings', {
-    hiragana: true,
-    katakana: true,
-    words: false
-  })
-
-  const {current, input, isWrong, isRevealing} = state
-
-  const [numberCorrect, setNumberCorrect] = useLocalStorage('correct-number', 0)
-  const {play} = useSimpleAudio('blip.mp3')
+  const [state, dispatch] = usePersistReducer(
+    {key: 'app'},
+    reducer,
+    initialState,
+    init
+  )
+  const {current, input, isWrong, isRevealing, settings} = state
 
   useHotkeys('enter', onPressEnter, [isRevealing, input, current])
 
-  useEffect(() => {
-    dispatch({type: 'newPrompt', settings})
-  }, [settings.hiragana, settings.katakana, settings.words])
-
-  if (!some(settings) || !current) {
+  if (!some(settings)) {
     return (
-      <Layout {...{settings, setSettings, numberCorrect}}>
+      <Layout
+        {...{
+          settings,
+          setSettings,
+          numberCorrect: state.correct
+        }}
+      >
         <Info>pls select something 😔</Info>
       </Layout>
     )
   }
 
-  if (input.trim() === '?') {
-    dispatch({type: 'toggleReval'})
-  }
-
-  if (input.trim().length === current.romaji.length) {
-    if (isCorrect()) onCorrect()
-  }
-
   return (
-    <Layout {...{settings, setSettings, numberCorrect}}>
+    <Layout {...{settings, setSettings, numberCorrect: state.correct}}>
       <Prompt>{current.kana}</Prompt>
       <WordInfo>
         {current.meaning ? `${current.meaning} (${current.expression})` : ' '}
@@ -155,30 +105,12 @@ function App() {
     </Layout>
   )
 
-  function onFailure() {
-    const romaji = input.trim().toUpperCase()
-    const usedKana = containsHiragana(current.kana)
-      ? toHiragana(romaji)
-      : toKatakana(romaji)
-
-    setIsWrong(`${romaji.toLowerCase()} (${usedKana || ''})`)
-    setInput('')
+  function setSettings(settings) {
+    dispatch({type: 'setSettings', settings})
   }
 
   function toggleReveal() {
-    dispatch('toggleReveal')
-  }
-
-  function getPrompt() {
-    const category = sample(
-      [
-        settings.hiragana && hiragana,
-        settings.katakana && katakana,
-        settings.words && words
-      ].filter((list) => list)
-    )
-
-    return sample(category)
+    dispatch({type: 'toggleReveal'})
   }
 
   function onPressEnter() {
@@ -188,6 +120,94 @@ function App() {
       dispatch({type: 'check'})
     }
   }
+}
+
+function reducer(state, action) {
+  console.log(action.type)
+  const {input, current, settings, isRevealing, correct} = state
+  if (action.type === 'newPrompt') {
+    return {
+      ...state,
+      settings: action.settings || settings
+    }
+  }
+
+  if (action.type === 'toggleReveal') {
+    return {
+      ...state,
+      input: '',
+      isRevealing: !isRevealing
+    }
+  }
+
+  if (action.type === 'input') {
+    if (isCorrect(action.value, current)) return onCorrect()
+    if (action.value.includes('?')) return {...state, isRevealing: true}
+
+    return {
+      ...state,
+      input: action.value
+    }
+  }
+
+  if (action.type === 'check') {
+    if (isCorrect(input, current)) return onCorrect()
+    return onFailure()
+  }
+
+  if (action.type === 'setSettings') {
+    return {
+      ...state,
+      current: getPrompt(action.settings) || current,
+      settings: action.settings
+    }
+  }
+
+  return state
+
+  function onCorrect() {
+    correctSound.play()
+    speech.speak({text: current.kana})
+    return {
+      ...state,
+      correct: correct + 1,
+      current: getPrompt(settings),
+      isWrong: false,
+      input: ''
+    }
+  }
+
+  function onFailure() {
+    const romaji = input.trim().toUpperCase()
+    const usedKana = containsHiragana(current.kana)
+      ? toHiragana(romaji)
+      : toKatakana(romaji)
+    return {
+      ...state,
+      isWrong: `${romaji.toLowerCase()} (${usedKana || ''})`,
+      setInput: ''
+    }
+  }
+}
+
+function isCorrect(input, current) {
+  return input.toLowerCase().trim() === current.romaji.toLowerCase()
+}
+
+function getPrompt(settings) {
+  const category = sample(
+    [
+      settings.hiragana && hiragana,
+      settings.katakana && katakana,
+      settings.words && words
+    ].filter((list) => list)
+  )
+
+  return sample(category)
+}
+
+function init(state) {
+  return {current: getPrompt(state.settings), input: '', ...state}
 }
 
 const Prompt = styled.div`
@@ -258,6 +278,7 @@ const Reveal = styled.div`
 
 const Info = styled.div`
   font-size: 3em;
+  text-align: center;
 `
 
 const WordInfo = styled.div`
